@@ -23,8 +23,13 @@
 namespace hurricane {
 
 namespace message {
+	// 所有的具体消息类型都应该继承自该消息类,并且不同的类型需要不同的消息类型,防止消息发生冲突
+	// 除此之外,消息的具体实现和数据传输方式就交给具体实现去解决了
 	class Message {
 	public:
+
+		// 该枚举类型定义了所有的消息类型,作为示例,我们定义了一个STOP消息
+		// 并为消息赋予了一个数字0,作为消息的唯一代码
 		struct Type {
 			enum {
 				Stop = 0
@@ -46,7 +51,7 @@ namespace message {
 		}
 
 	private:
-		int32_t _type;
+		int32_t _type;// 消息类型
 	};
 }
 

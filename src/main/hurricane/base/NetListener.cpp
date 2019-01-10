@@ -28,8 +28,11 @@
 #include <thread>
 #include <chrono>
 
+// 这个常量是网络监听器中使用的数据缓冲区的大小
+// 为什么设置为65535? 网络中的数据都是使用IP报文发送的,而IP报文中表示数据长度的字段为2字节,也就是16位,因此能表示的最大长度为65535
 const int DATA_BUFFER_SIZE = 65535;
 
+// 该函数的第一步是创建一个新的TCPserver对象,并将其保存到一个std::shared_ptr智能指针中
 void NetListener::StartListen()
 {
     meshy::IoLoop::Get()->Start();

@@ -18,6 +18,7 @@
 
 #pragma once
 
+// window则包含,linux则包含
 #ifdef OS_WIN32
 #include <Windows.h>
 #elif ( defined(OS_LINUX) )
@@ -32,16 +33,16 @@ namespace hurricane {
     namespace base {
 #ifdef OS_WIN32
         ITopology* LoadTopolgoy(const std::string& fileName) {
-            HINSTANCE hInstance = LoadLibrary(fileName.c_str());
+            HINSTANCE hInstance = LoadLibrary(fileName.c_str());// 获取动态链接库句柄
 
-            typedef ITopology* (TopologyGetter)();
+            typedef ITopology* (TopologyGetter)();// 函数指针,返回类型为ITopology* 参数列表为空,类型名TopologyGetter
             
             TopologyGetter GetTopology = (TopologyGetter)GetProcAddress(
-                hInstance, "GetTopology");
+                hInstance, "GetTopology");// 使用getprocaddress进行地址映射,将DLL中名为GetTopology的函数映射到当前进程中
 
-            ITopology* topology = GetTopology();
+            ITopology* topology = GetTopology();// 执行该函数,构建出用户指定的拓扑结构
 
-            return topology;
+            return topology;// 返回拓扑结构
         }
 
 #elif ( defined(OS_LINUX) )

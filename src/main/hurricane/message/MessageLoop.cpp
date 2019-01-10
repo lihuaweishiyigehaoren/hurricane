@@ -30,6 +30,8 @@
 
 namespace hurricane {
 namespace message {
+	// 使用windows的PostThreadMessage向对应的线程投递消息,并在run函数的无限循环中使用GetMessage获取并解析消息,执行消息
+	// 如果接收到了Stop类型的消息,那么整个循环停止,消息队列结束
 	MessageLoop::MessageLoop() {
 		_threadId = GetCurrentThreadId();
 	}

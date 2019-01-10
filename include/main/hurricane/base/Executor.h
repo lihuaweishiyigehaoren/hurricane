@@ -34,6 +34,7 @@ namespace base {
 template <class TaskType>
 class Executor {
 public:
+    // status表示执行器的状态,某个执行器可能在执行任务,此时状态为Running ,否则为Stopping
     enum class Status {
         Stopping,
         Running
@@ -44,6 +45,7 @@ public:
 
     virtual ~Executor() {}
 
+    // 负责启动任务,其实就是设置一下任务名,保存用户传递的任务,并创建一个新的线程,准备执行任务,入口为StartThread
     void StartTask(const std::string& taskName, TaskType* task) {
 		_messageLoop.MessageMap(BoltMessage::MessageType::Data,
 			this, &BoltMessageLoop::OnData);
@@ -53,6 +55,7 @@ public:
 		_thread = std::thread(std::bind(&Executor::StartThread, this));
     }
 
+    // 停止
     virtual void StopTask() {
 		_messageLoop.Stop();
     }
@@ -72,6 +75,13 @@ protected:
 	hurricane::message::MessageLoop _messageLoop;
 
 private:
+    /*
+    #执行过程
+    1、设置任务状态
+    2、调用oncreate初始化任务执行器
+    3、启动消息队列,消息队列结束执行OnStop停止执行器
+    4、等待Manager的下一次调度
+    */
     void StartThread() {
 		_status = Status::Running;
 

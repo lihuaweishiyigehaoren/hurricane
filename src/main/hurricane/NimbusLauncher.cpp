@@ -194,40 +194,53 @@ std::pair<Node, int> GetFieldDestination(
 int main() {
     std::cerr << "Nimbus started" << std::endl;
 
+    // 使用GetTopology从文件中装载拓扑结构,并将拓扑结构保存在topology变量里
     ITopology* topology = GetTopology();
 
+    // 定义Manager的集合,这是一个映射表结构,每一个supervisors的机器名对应一个Node节点对象
     std::map<std::string, Node> supervisors;
+    // 定义Spout任务,用于记录每个supervisors上消息源任务分配情况,如果对应的执行器没有任务运行,就用一个空字符串表示
     std::map<std::string, Tasks> spoutTasks;
+    // 定义bolttasks变量,保存了supervisors上所有消息源任务的分配情况,同上
     std::map<std::string, Tasks> boltTasks;
+    // fieldDestinations,其本身是一个映射表,映射表的键是一个键值对,值也是一个键值对,键对应了数据源或者数据处理单元的任务名称和字段名称,值则对应了supervisor节点和执行器编号
     std::map <std::pair <std::string, std::string> , 
         std::pair < Node, int >> fieldDestinations;
 
-    NetListener netListener(NIMBUS_ADDRESS);
+    // 定义NetListener对象,并监听NIMBUS_ADDRESS这个地址
+    NetListener netListeer(NIMBUS_ADDRESS);
+    // 该对象负责将网络消息转换成命令并转发到各个处理函数,属于上层接口
     CommandDispatcher dispatcher;
+    // 这里使用oncommand来监听命令,这里监听的是command命令.同时用lambda表达式定义一个回调函数,用于处理join命令.
+    // 该lambda表达式包含两个参数,一个是命令中附带的参数合集,属于variants类型,一个是src,表示命令源的tcp连接对象
     dispatcher
         .OnCommand(Command::Type::Join,
             [&](hurricane::base::Variants args, std::shared_ptr<meshy::TcpConnection> src) -> void {
+        // 获取第一个参数,并将其转换为字符串,该参数是想要加入集群的Manager的主机名
         std::string supervisorName = args[0].GetStringValue();
 
-        // Create supervisor node
+        // Create supervisor node(节点名使用客户端传递过来的主机名,然后为其分配一个网络地址,准备与其通信)
         Node supervisor(supervisorName, SUPERVISOR_ADDRESSES.at(supervisorName));
         supervisor.SetStatus(Node::Status::Alived);
         supervisors[supervisorName] = supervisor;
 
-        // Create empty tasks
+        // Create empty tasks(创建空的任务列表,因为刚初始化完成的节点不会执行任何任务)
         spoutTasks[supervisorName] = Tasks(EXECUTOR_CAPACITY);
         boltTasks[supervisorName] = Tasks(EXECUTOR_CAPACITY);
 
+        // 创建一个新的命令对象,作为该命令的返回值.返回值只有一个值,就是中央节点的主机名
         Command command(Command::Type::Response, {
             std::string("nimbus")
         });
 
+        // 使用toDataPackage成员函数,将命令转换成用于序列化的数据包对象
+        // 接着使用Serialize成员函数,将数据包的数据序列化成字节流,并将字节数组保存在commandBytes数组对象中
         ByteArray commandBytes = command.ToDataPackage().Serialize();
-        src->Send(*(reinterpret_cast<meshy::ByteArray*>(&commandBytes)));
+        src->Send(*(reinterpret_cast<meshy::ByteArray*>(&commandBytes)));// 将响应数据发回Manager(这里的supervisor),这样我们就完成了加入集群的响应
 
         if ( supervisors.size() == SUPERVISOR_ADDRESSES.size() ) {
             std::cout << "All supervisors started" << std::endl;
-            dispatchTasks(supervisors, spoutTasks, boltTasks, topology);
+            dispatchTasks(supervisors, spoutTasks, boltTasks, topology);// 对新加入的节点进行任务分配.分配任务在新的节点上执行
         }
     })
         .OnCommand(Command::Type::Alive,
@@ -437,8 +450,11 @@ int main() {
         }
     });
     
+    // 这里是业务层以下的部分,NETlistener消息处理部分
+    // 该网络通信的data事件,回调函数是一个Lambda表达式,该表达式1个参数是客户端的Tcp连接,第2个参数是数据缓冲区首地址,第三个参数是数据长度
     netListener.OnData([&](meshy::TcpStream* connection, 
             const char* buffer, int32_t size) -> void {
+        // 利用收到的数据构建一个信息的字节数组对象,保存在receiveData中.
         ByteArray receivedData(buffer, size);
         DataPackage receivedPackage;
         receivedPackage.Deserialize(receivedData);
