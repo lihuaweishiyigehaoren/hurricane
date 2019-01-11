@@ -456,11 +456,15 @@ int main() {
             const char* buffer, int32_t size) -> void {
         // 利用收到的数据构建一个信息的字节数组对象,保存在receiveData中.
         ByteArray receivedData(buffer, size);
+		// 定义一个数据包
         DataPackage receivedPackage;
+		// 将收到的二进制数据反序列化，这样就可以本地内存的数据结构
         receivedPackage.Deserialize(receivedData);
         
+		// 创建新命令，命令的内容是刚才的数据包
         Command command(receivedPackage);
 
+		// 分发命令
         dispatcher.Dispatch(command);
     });
 

@@ -70,11 +70,14 @@ int main(int argc, char** argv) {
         exit(-1);
     }
 
+	// 初始化Manager的节点名称，节点名称由集群的启动脚本读取配置文件，在Manager启动的时候通过传参实现
     std::string supervisorName(argv[1]);
     std::cerr << "Supervisor " << supervisorName << " started" << std::endl;
 
+	// 从外部文件装载Topology
     ITopology* topology = GetTopology();
 
+	// 启动一个新的线程，
     std::thread aliveThread(AliveThreadMain, supervisorName);
     aliveThread.detach();
 
